@@ -57,6 +57,8 @@ func (r *Reconciler) configHash() (string, error) {
 
 func (r *Reconciler) configCheck() (*ConfigCheckResult, error) {
 	hashKey, err := r.configHash()
+	// Use the name to get the pod.
+	r.Log.Info(fmt.Sprintf("%+v\n", r.fluentContainer().Name))
 	if err != nil {
 		return nil, err
 	}
