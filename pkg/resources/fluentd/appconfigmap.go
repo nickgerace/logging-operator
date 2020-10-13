@@ -16,11 +16,10 @@ package fluentd
 
 import (
 	"context"
-	"fmt"
-	"hash/fnv"
-
 	"emperror.dev/errors"
+	"fmt"
 	"github.com/banzaicloud/operator-tools/pkg/reconciler"
+	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -57,8 +56,6 @@ func (r *Reconciler) configHash() (string, error) {
 
 func (r *Reconciler) configCheck() (*ConfigCheckResult, error) {
 	hashKey, err := r.configHash()
-	// Use the name to get the pod.
-	r.Log.Info(fmt.Sprintf("%+v\n", r.fluentContainer().Name))
 	if err != nil {
 		return nil, err
 	}
@@ -204,6 +201,26 @@ func (r *Reconciler) newCheckOutputSecret(hashKey string) (*v1.Secret, error) {
 }
 
 func (r *Reconciler) newCheckPod(hashKey string) *v1.Pod {
+	r.Log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	// Use the name to get the pod.
+	checkPod := &corev1.Pod{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{*r.fluentContainer()},
+		},
+	}
+	pods := &corev1.PodList{}
+	_= r.Client.List(context.TODO(), pods)
+	for _, item := range pods.Items {
+		for _, container := range item.Spec.Containers {
+			if reflect.DeepEqual(container, *r.fluentContainer()) {
+				r.Log.Info(fmt.Sprintf("%+v\n", r.Client.Get(context.TODO(), client.ObjectKey{
+					Namespace: item.Name,
+					Name:      item.Namespace,
+				}, checkPod)))
+			}
+		}
+	}
+	r.Log.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	pod := &v1.Pod{
 		ObjectMeta: r.FluentdObjectMeta(fmt.Sprintf("fluentd-configcheck-%s", hashKey), ComponentConfigCheck),
 		Spec: v1.PodSpec{
